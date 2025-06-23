@@ -1,0 +1,158 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MessengerMVC2</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/MessengerMVC2.styles.css" asp-append-version="true" />
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            width: 250px;
+            position: fixed;
+            left: 0;
+            top: 56px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            transition: all 0.3s;
+        }
+
+        .no-sidebar .main-content {
+            margin-left: 0;
+        }
+
+        .nav-link.active {
+            font-weight: 600;
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        .navbar-brand {
+            margin-left: 20px;
+        }
+
+        .sidebar-collapse {
+            width: 80px;
+        }
+
+            .sidebar-collapse .nav-link span {
+                display: none;
+            }
+
+            .sidebar-collapse .nav-link i {
+                margin-right: 0;
+            }
+
+        .sidebar-toggler {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">MessengerMVC2</a>
+
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse" id="navbarCollapse">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle"></i> @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#">Profile</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home")">
+                                            <button type="submit" class="dropdown-item">Logout</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex">
+                        <a class="btn btn-outline-primary me-2" asp-area="Identity" asp-page="/Account/Login">Login</a>
+                        <a class="btn btn-primary" asp-area="Identity" asp-page="/Account/Register">Register</a>
+                    </div>
+                }
+            </div>
+        </nav>
+    </header>
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <div class="sidebar bg-light">
+            <div class="p-3">
+                <div class="d-flex align-items-center mb-4">
+                    <h5 class="mb-0">Menu</h5>
+                    <button class="btn btn-sm ms-auto sidebar-toggler">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Messages" ? "active" : "")"
+                           asp-controller="Messages" asp-action="Index">
+                            <i class="bi bi-chat-left-text me-2"></i>
+                            <span>Messages</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")"
+                           asp-controller="Users" asp-action="Index">
+                            <i class="bi bi-people me-2"></i>
+                            <span>Find Users</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    }
+
+    <div class="@(User.Identity.IsAuthenticated ? "main-content" : "no-sidebar")">
+        <div class="container-fluid py-3">
+            <main role="main">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - MessengerMVC2
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        $(document).ready(function() {
+            // Toggle sidebar collapse
+            $('.sidebar-toggler').click(function() {
+                $('.sidebar').toggleClass('sidebar-collapse');
+                $('.main-content').toggleClass('collapsed');
+            });
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

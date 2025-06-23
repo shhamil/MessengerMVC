@@ -1,0 +1,23 @@
+﻿@model List<ApplicationUser>
+
+<h2>Ваши сообщения</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Пользователи</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>
+                    <a asp-controller="Messages" asp-action="Conversation" asp-route-userId="@user.Id" class="text-decoration-none">
+                        @user.Email
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

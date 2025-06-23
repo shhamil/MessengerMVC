@@ -1,0 +1,104 @@
+﻿@model List<Message>
+@{
+    var otherUser = ViewBag.OtherUser as ApplicationUser;
+    ViewData["Title"] = $"Чат с {otherUser.Email}";
+}
+
+<div class="card">
+    <div id="messageContainer" class="card-body" style="height: 400px; overflow-y: auto;">
+        @foreach (var message in Model)
+        {
+            <div class="@(message.SenderId == otherUser.Id ? "text-start" : "text-end") mb-3">
+                <div class="d-inline-block p-2 rounded @(message.SenderId == otherUser.Id ? "bg-light" : "bg-primary text-white")">
+                    <p class="mb-0">@message.Content</p>
+                    <small class="text-muted">@message.SentAt.ToString("g")</small>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-3">
+    <form id="messageForm" asp-controller="Messages" asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="receiverId" value="@otherUser.Id" />
+        <div class="input-group">
+            <input type="text" id="messageInput" name="content" class="form-control" placeholder="Введите ваше сообщение..." required />
+            <button type="submit" id="SendBtn" class="btn btn-primary">Отправить</button>
+        </div>
+    </form>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary mt-3">К списку диалогов</a>
+
+@section Scripts {
+    <script>
+                document.addEventListener('DOMContentLoaded', function() {
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+
+            const hubConnection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub")
+                .build();
+
+            // Обработчик отправки формы
+            document.getElementById("messageForm").addEventListener("submit", async function(e) {
+                e.preventDefault();
+
+                const messageInput = document.getElementById("messageInput");
+                const receiverId = document.querySelector("input[name='receiverId']").value;
+                const message = messageInput.value;
+                const antiForgeryToken = document.querySelector("input[name='__RequestVerificationToken']").value;
+
+                if (message.trim() === "") return;
+
+                try {
+                    // Отправляем только через fetch, SignalR вызовется из контроллера
+                    const saveResponse = await fetch('/Messages/Create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': antiForgeryToken
+                        },
+                        body: `receiverId=${encodeURIComponent(receiverId)}&content=${encodeURIComponent(message)}`
+                    });
+
+                    if (!saveResponse.ok) throw new Error('Ошибка сохранения в БД');
+
+                    messageInput.value = "";
+                } catch (err) {
+                    console.error("Ошибка:", err);
+                    alert('Ошибка при отправке сообщения');
+                }
+            });
+
+            // Обработчик получения сообщения
+            hubConnection.on("ReceiveMessage", function(senderId, receiverId, message, sentAt) {
+                const currentUserId = "@User.FindFirstValue(ClaimTypes.NameIdentifier)";
+                const isOtherUser = senderId !== currentUserId;
+                const formattedDate = new Date(sentAt).toLocaleString();
+
+                const messageDiv = document.createElement("div");
+                messageDiv.className = isOtherUser ? "text-start mb-3" : "text-end mb-3";
+
+                messageDiv.innerHTML = `
+                    <div class="d-inline-block p-2 rounded ${isOtherUser ? 'bg-light' : 'bg-primary text-white'}">
+                        <p class="mb-0">${message}</p>
+                        <small class="text-muted">${formattedDate}</small>
+                    </div>
+                `;
+
+                messageContainer.appendChild(messageDiv);
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            });
+
+            // Запуск соединения
+            hubConnection.start()
+                .then(() => console.log("SignalR соединение установлено"))
+                .catch(err => {
+                    console.error("Ошибка SignalR:", err.toString());
+                    setTimeout(() => hubConnection.start(), 5000);
+                });
+        });
+    </script>
+}
